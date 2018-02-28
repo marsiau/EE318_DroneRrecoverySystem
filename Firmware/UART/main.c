@@ -50,6 +50,11 @@ Init_LCD();         //for debugging
  clearLCD();
     while (1)
     {
+      if(RxMsg.status == STOP)
+      {
+        displayScrollText("RxData");
+        __delay_cycles(200000);
+      }
     }
 }
 

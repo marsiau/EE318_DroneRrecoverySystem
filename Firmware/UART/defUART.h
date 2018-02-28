@@ -20,21 +20,24 @@
 #include <stdint.h>                             //For uintX_t
 #include <stdbool.h>                            //For bool
 
+//Define maximum message size for Rx
+#define MAX_MSG_SIZE 160
+
 //----- Structure declarations -----
-struct TxMsgStruct
+enum statusFlags{STOP, CONT, PAUSE};
+//----- Structure declarations -----
+struct UARTMsgStruct
 {
-  bool sending;
-  char *pdata;                            //Pointer to char msg data
+  enum statusFlags status;
+  char *pdata;                                  //Pointer to char msg data
   uint8_t len;
-  uint8_t iTx;
-}extern TxMsg;
+  uint8_t i;
+}extern TxMsg, RxMsg;
 
 //----- Variable declarations -----
-extern char RXData[40];                //Rx message data
-extern unsigned int iRx;                        //Counter for Rx data
+extern char RXData;                    //Rx message data
 //Variable signaling whether HFC is enabled/disabled (RTS/CTS lines)
 extern bool HFC_flag;                           //Hardware Flow Controll Flag
-extern bool temp_flag;
 
 //----- Function declarations -----
 void init_UART_GPIO();                          //Initialize UART GPIO
@@ -50,4 +53,5 @@ uintX_t and boolean type variables are used as they:
   o document the intent for type/range of values stored 
   o are efficiant
   o personal preference
+enum type for flags is created for convieniance
 */

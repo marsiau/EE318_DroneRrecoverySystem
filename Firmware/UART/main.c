@@ -18,8 +18,7 @@ __interrupt void P1_interrupt_handler(void)
 {
   switch(__even_in_range(P1IV,P1IV_P1IFG7))//Checks all pins on P1
   {
-  case P1IV_P1IFG2:     //PIN2 - SW1
-       P1OUT |= BIT0;     //Turn P4.0 on
+  case P1IV_P1IFG2:                             //PIN2 - SW1
        send_over_UART(msg, sizeof(msg)-1);
     break;
   }
@@ -43,9 +42,6 @@ Init_LCD();         //for debugging
     P1IES |= BIT2; ////Interrupt on high-to-low transition
     P1IE  |= BIT2; //Interrupt enabled
     P1IFG &= ~BIT2; // P1.2 interrupt flag cleared      
-    //LED
-    P4DIR |= BIT0;      //P4.0 as output
-    P1OUT &= ~BIT0;     //Turn P4.0 off
     
     //Enable interrupts
     __enable_interrupt();

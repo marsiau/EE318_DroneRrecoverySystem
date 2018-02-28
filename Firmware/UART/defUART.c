@@ -6,7 +6,7 @@ char RXData[40];
 unsigned int iRx = 0;
 bool HFC_flag;
 bool temp_flag = false;
-
+bool state = false;
 
 //----- Interupt rutine for UART -----
 #pragma vector=USCI_A0_VECTOR
@@ -77,13 +77,16 @@ void init_UART_GPIO()
   // Configure UART Rx/Tx pins
   P1SEL0 |= BIT0 | BIT1;                        //Set 2-UART pin as second function
   // Configure UART RTS/CTS pins
-  //RTS
+    //RTS
   P2SEL0 |= BIT5;                               //P2.5(RTS) as output
-  //CTS
+    //CTS
   P2SEL0 &=  ~BIT7;                             //P2.7(CTS) as input
   P2REN  |=   BIT7;                             //Enable pull up/down resistor 
-  P2OUT  |=   BIT7;                           //Enable pull Up
+  P2OUT  |=   BIT7;                             //Enable pull Up
   //P2OUT  &=   ~BIT7;                            //Enable pull Down
+    //LED
+  P4DIR |= BIT0;                                //P4.0 as output
+  P4OUT &= ~BIT0;                               //Turn P4.0 off
   
   P8SEL0 |= BIT0; 
   P8OUT &= ~BIT0;
@@ -147,19 +150,23 @@ bool send_over_UART(char *pdata, uint8_t lenght)
   {
     if(HFC_flag)
     { 
-      P2OUT &= ~BIT5;                              //P2.5 - off, RTS - on
+      P2OUT &= ~BIT5;                           //P2.5 - off, RTS - on
     }
     //Prepare data
     TxMsg.sending = true;
     TxMsg.pdata   = pdata;
     TxMsg.len     = lenght;
     TxMsg.iTx     = 0;
-    //if(!(HFC_flag && !(P2IN & BIT7)))              //If CTS is on - start sending
-    //{
+    if(HFC_flag && (P2IN & BIT7))               //If HFC enabled, CTS - off
+    {
+      //CTS interrupt will start transmission when CTS goes high
+       P4OUT |= BIT0;                           //Turn P4.0
+    }
+    else
+    {
       UCA0IE |= UCTXIE;                         //Enable USCI_A0 TX interrupt
       UCA0TXBUF = TxMsg.pdata[TxMsg.iTx];       //Load data onto buffer
-    //}
-    //else CTS interrupt will start transmission when CTS goes high
+    }
     return true;
   }
  }

@@ -52,18 +52,19 @@ __interrupt void P2_interrupt_handler(void)
     if(P2IN & BIT7)                             //CTS went HIGH
     {  
       P2IES  |=   BIT7;                         //Interrupt on high-to-low transition
+      //Pause\Stop transmittion 
+      UCA0IE &= ~UCTXIE;                        //Disable USCI_A0 TX interrupt 
+      
+    }
+    else                                        //CTS went LOW
+    {
+      P2IES  &=  ~BIT7;                         //Interrupt on low-to-high transition
       if(TxMsg.sending)
       {
         //Start/Resume transmission
         UCA0TXBUF = TxMsg.pdata[TxMsg.iTx];     //Load/reload data onto buffer
         UCA0IE |= UCTXIE;                       //Enable USCI_A0 TX interrupt
       }
-    }
-    else                                        //CTS went LOW
-    {
-      P2IES  &=  ~BIT7;                         //Interrupt on low-to-high transition
-      //Pause\Stop transmittion 
-      UCA0IE &= ~UCTXIE;                        //Disable USCI_A0 TX interrupt 
     }   
     P2IE   |=   BIT7;                           //Interrupt reenabled
     P2IFG   &=  ~BIT7;                          //Interrupt flag cleared
@@ -78,12 +79,14 @@ void init_UART_GPIO()
   // Configure UART RTS/CTS pins
   //RTS
   P2SEL0 |= BIT5;                               //P2.5(RTS) as output
-  P2OUT  &= ~BIT5;                              //Turn off
   //CTS
   P2SEL0 &=  ~BIT7;                             //P2.7(CTS) as input
   P2REN  |=   BIT7;                             //Enable pull up/down resistor 
-  //P2OUT  |=   BIT7;                           //Enable pull Up
-  P2OUT  &=   ~BIT7;                            //Enable pull Down
+  P2OUT  |=   BIT7;                           //Enable pull Up
+  //P2OUT  &=   ~BIT7;                            //Enable pull Down
+  
+  P8SEL0 |= BIT0; 
+  P8OUT &= ~BIT0;
 }
 
 void init_UART()
@@ -105,6 +108,7 @@ void init_UART()
   UCA0MCTLW |= 0x2080;                          //0x20 + 8                                        
   UCA0BR1 = 0;
   UCA0CTLW0 &= ~UCSWRST;                        //Initialize eUSCI
+ 
   UCA0IE |= UCRXIE;                           // Enable USCI_A0 RX interrupt
   
   //Initialize TxMsg variable
@@ -127,13 +131,15 @@ void enable_HFC()                              //Enable Hardware Flow Controll
   }
   P2IE   |=   BIT7;                             //CTS interrupt enabled
   P2IFG   &=  ~BIT7;                            //Interrupt flag cleared
+  P2OUT  &= ~BIT5;                              //P2.5 - off, RTS - on
 }
 void disable_HFC()                              //Disable Hardware Flow Controll
 {
   HFC_flag = false;
-  P2IE   |=   BIT7;                             //CTS interrupt enabled
+  P2IE &= ~BIT7;                                //CTS interrupt disabled
+  P2OUT  != BIT5;                               //P2.5 - on, RTS - off
 }
-bool send_over_UART(char *pdata, uint8_t lenght)//TODO check if not sending atm
+bool send_over_UART(char *pdata, uint8_t lenght)
 {
   if(TxMsg.sending)
     return false;                               //Other message is being sent
@@ -141,18 +147,18 @@ bool send_over_UART(char *pdata, uint8_t lenght)//TODO check if not sending atm
   {
     if(HFC_flag)
     { 
-      P2OUT |= BIT5;                              //Make sure RTS is high
+      P2OUT &= ~BIT5;                              //P2.5 - off, RTS - on
     }
     //Prepare data
     TxMsg.sending = true;
     TxMsg.pdata   = pdata;
     TxMsg.len     = lenght;
     TxMsg.iTx     = 0;
-    if((P2IN & BIT7) || !HFC_flag)              //If CTS is high - start sending
-    {
+    //if(!(HFC_flag && !(P2IN & BIT7)))              //If CTS is on - start sending
+    //{
       UCA0IE |= UCTXIE;                         //Enable USCI_A0 TX interrupt
       UCA0TXBUF = TxMsg.pdata[TxMsg.iTx];       //Load data onto buffer
-    }
+    //}
     //else CTS interrupt will start transmission when CTS goes high
     return true;
   }

@@ -10,7 +10,7 @@
 #include "defUART.h"
 #include "hal_LCD.h"
 
-char msg[] = {"AT+WOPEN=2"};
+char msg[] = {"AT+WOPEN=2\r\n"};
 
 //----- Interupt rutine for GPIO -----
 #pragma vector = PORT1_VECTOR
@@ -33,8 +33,8 @@ int main(void)
 Init_LCD();         //for debugging
     
     init_UART(); 
-    //disable_HFC();
-    enable_HFC();
+   // disable_HFC();
+   enable_HFC();
     // Configure GPIO pins
       //Button
     P1DIR &= ~BIT2; //P1.2 as input
@@ -54,10 +54,6 @@ Init_LCD();         //for debugging
  clearLCD();
     while (1)
     {
-      if(temp_flag)
-      {
-        displayScrollText(RXData);
-      }
     }
 }
 

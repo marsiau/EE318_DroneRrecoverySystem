@@ -57,12 +57,6 @@ __interrupt void TIMERA0_ISR1(void)
 {
   TA1CTL |= MC_0; TA1R = 0;             //Disable/reset the timer
   RxMsg.status = STOP;
-  //Parse received msg
-  /*
-  switch(__even_in_range(TA0IV,10))     //Clears the flag 
-  {
-    ; //Not used
-  }*/
 }
 //----- Interupt rutine for GPIO CTS implementation-----
 #pragma vector = PORT2_VECTOR
@@ -103,8 +97,8 @@ void init_UART_GPIO()
   P1SEL0 |= BIT0 | BIT1;                        //Set 2-UART pin as second function
   // Configure UART RTS/CTS pins
     //RTS
-  P2SEL0 |= BIT5;                               //P2.5(RTS) as output
-  
+  //P2SEL0 |= BIT5;                               //P2.5(RTS) as output
+  P8SEL0 |= BIT0;                               //P8.0 (RTS) as output
     //CTS
   P2SEL0 &=  ~BIT7;                             //P2.7(CTS) as input
   P2REN  |=   BIT7;                             //Enable pull up/down resistor 
@@ -125,28 +119,7 @@ void init_Rx_Timer()
   TA1CCR0 = 0xFFFF;//Count to max to get ~0.5s
   TA1CCTL0 = CCIE;//CCR0 interrupt enabled
 }
-/*
-#define PERIOD_STEP     0x800          // Step size for speed modes   
-//----- Setup TA0 for LED driver -----
-  // consulted msp430fr413x_adc10_16.c
-  
-  TA0R = 0;                             // Write inital counter value
-  TA0CCR0 =  PERIOD_STEP;               // Set the LED refresh frequency
-  TA0CCTL0 = CCIE;                      // CCR0 interrupt enabled
-  TA0CTL = TASSEL_1 | MC_1 | TACLR;     // ACLK, clear TAR
-  
-//----- Setup TA1.1 for 8Hz ADC driver -----
-  //Configure ADC timer trigger TA1.1
-  //The count-to value, 32768/8 = 4096 = 0x1000
-  TA1CTL = TACLR;                       // Clear the timer.
-  TA1CCR0 =  0x1000;                    // Reset every 0x1000 tics
-  TA1CCR1 =  0x800;                     // Toggle OUT every 0x800 to turn the ADC on 8 times/s
-  TA1CCTL1 = OUTMOD_7;                  // TA1CCR1 toggle
-  TA1CTL = TASSEL_1 | MC_1 | TACLR;     // ACLK, up mode  
-  
-  ADCCTL0 |= ADCENC;                    // Enable conversion
 
-*/
 void init_UART()
 {
   init_UART_GPIO();
@@ -195,13 +168,15 @@ void enable_HFC()                              //Enable Hardware Flow Controll
   }
   P2IE   |=   BIT7;                             //CTS interrupt enabled
   P2IFG   &=  ~BIT7;                            //Interrupt flag cleared
-  P2OUT  &= ~BIT5;                              //P2.5 - off, RTS - on
+  //P2OUT  &= ~BIT5;                              //P2.5 - off, RTS - on
+  P8OUT &= ~BIT0;                               //P8.0 - off, RTS - on
 }
 void disable_HFC()                              //Disable Hardware Flow Controll
 {
   HFC_flag = false;
   P2IE &= ~BIT7;                                //CTS interrupt disabled
-  P2OUT != BIT5;                               //P2.5 - on, RTS - off
+  //P2OUT |= BIT5;                               //P2.5 - on, RTS - off
+  P8OUT |= BIT0;                               //P8.0 - off, RTS - on
 }
 bool send_over_UART(char *pdata, uint8_t lenght)
 {
@@ -211,7 +186,8 @@ bool send_over_UART(char *pdata, uint8_t lenght)
   {
     if(HFC_flag)
     { 
-      P2OUT &= ~BIT5;                           //P2.5 - off, RTS - on
+      //P2OUT &= ~BIT5;                           //P2.5 - off, RTS - on
+      P8OUT &= ~BIT0;                               //P8.0 - off, RTS - on
     }
     //Prepare data
     TxMsg.status = CONT;

@@ -52,11 +52,11 @@ __interrupt void USCI_A0_ISR(void)
 }
 
 //----- Interrupt handler for timer-----
-#pragma vector = TIMER0_A1_VECTOR
-__interrupt void TIMERA0_ISR1(void) 
+#pragma vector = TIMER1_A0_VECTOR
+__interrupt void TIMERA1_ISR(void) 
 {
   TA1CTL |= MC_0; TA1R = 0;             //Disable/reset the timer
-  RxMsg.status = STOP;
+  RxMsg.status = REC;
 }
 //----- Interupt rutine for GPIO CTS implementation-----
 #pragma vector = PORT2_VECTOR

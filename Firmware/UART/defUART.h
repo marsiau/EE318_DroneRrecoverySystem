@@ -24,7 +24,7 @@
 #define MAX_MSG_SIZE 160
 
 //----- Structure declarations -----
-enum statusFlags{STOP, CONT, PAUSE};
+enum statusFlags{STOP, CONT, PAUSE, REC};
 //----- Structure declarations -----
 struct UARTMsgStruct
 {
@@ -35,7 +35,7 @@ struct UARTMsgStruct
 }extern TxMsg, RxMsg;
 
 //----- Variable declarations -----
-extern char RXData;                    //Rx message data
+extern char RxData[MAX_MSG_SIZE];                    //Rx message data
 //Variable signaling whether HFC is enabled/disabled (RTS/CTS lines)
 extern bool HFC_flag;                           //Hardware Flow Controll Flag
 

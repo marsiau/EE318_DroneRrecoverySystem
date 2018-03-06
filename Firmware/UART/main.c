@@ -32,9 +32,9 @@ int main(void)
 Init_LCD();         //for debugging
     
     init_UART(); 
-   // disable_HFC();
-   enable_HFC();
-    // Configure GPIO pins
+    disable_HFC();
+   //enable_HFC();
+    //Configure GPIO pins
       //Button
     P1DIR &= ~BIT2; //P1.2 as input
     P1REN |= BIT2; //Enable pull up/down resistor on P1.2

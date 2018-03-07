@@ -97,13 +97,14 @@ void init_UART_GPIO()
   P1SEL0 |= BIT0 | BIT1;                        //Set 2-UART pin as second function
   // Configure UART RTS/CTS pins
     //RTS
-  //P2SEL0 |= BIT5;                               //P2.5(RTS) as output
   P8SEL0 |= BIT0;                               //P8.0 (RTS) as output
     //CTS
   P2SEL0 &=  ~BIT7;                             //P2.7(CTS) as input
   P2REN  |=   BIT7;                             //Enable pull up/down resistor 
-  P2OUT  |=   BIT7;                             //Enable pull Up
-  //P2OUT  &=   ~BIT7;                            //Enable pull Down
+  //P2OUT  |=   BIT7;                             //Enable pull Up
+  P2OUT  &=   ~BIT7;                            //Enable pull Down
+  //MUX pins
+  
     //LED
   P4DIR |= BIT0;                                //P4.0 as output
   P4OUT &= ~BIT0;                               //Turn P4.0 off
@@ -168,15 +169,13 @@ void enable_HFC()                              //Enable Hardware Flow Controll
   }
   P2IE   |=   BIT7;                             //CTS interrupt enabled
   P2IFG   &=  ~BIT7;                            //Interrupt flag cleared
-  //P2OUT  &= ~BIT5;                              //P2.5 - off, RTS - on
   P8OUT &= ~BIT0;                               //P8.0 - off, RTS - on
 }
 void disable_HFC()                              //Disable Hardware Flow Controll
 {
   HFC_flag = false;
   P2IE &= ~BIT7;                                //CTS interrupt disabled
-  //P2OUT |= BIT5;                               //P2.5 - on, RTS - off
-  P8OUT |= BIT0;                               //P8.0 - off, RTS - on
+  P8OUT |= BIT0;                               //P8.0 - on, RTS - off
 }
 bool send_over_UART(char *pdata, uint8_t lenght)
 {
@@ -186,7 +185,6 @@ bool send_over_UART(char *pdata, uint8_t lenght)
   {
     if(HFC_flag)
     { 
-      //P2OUT &= ~BIT5;                           //P2.5 - off, RTS - on
       P8OUT &= ~BIT0;                               //P8.0 - off, RTS - on
     }
     //Prepare data
@@ -208,4 +206,3 @@ bool send_over_UART(char *pdata, uint8_t lenght)
     return true;
   }
  }
-    

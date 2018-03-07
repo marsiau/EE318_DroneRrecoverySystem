@@ -46,7 +46,6 @@ void enable_HFC();                              //Enable Hardware Flow Controll
 void disable_HFC();                             //Disable Hardware Flow Controll
 bool send_over_UART(char *pdata, uint8_t lenght);//Send msg over UART
 #endif
-
 /*
 Notes:
 uintX_t and boolean type variables are used as they:

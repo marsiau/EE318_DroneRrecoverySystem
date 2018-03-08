@@ -1,6 +1,6 @@
 # UART and RS-232 implementation
 ## Status
-Tested and working
+Working but dodgy
 ## TODO:
 * Write abstraction functions for specific messages
 * Parse responses from GSM modem

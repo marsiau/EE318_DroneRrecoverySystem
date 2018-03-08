@@ -33,10 +33,10 @@ int main(void)
     WDTCTL = WDTPW | WDTHOLD;                 // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;                     // Disable the GPIO power-on default high-impedance mode
                                               // to activate previously configured port settings
-Init_LCD();         //for debugging
+    Init_LCD();         //for debugging
     
     init_UART(); 
-   // disable_HFC();
+    //disable_HFC();
    enable_HFC();
     //Configure GPIO pins
       //Button
@@ -50,16 +50,12 @@ Init_LCD();         //for debugging
     //Enable interrupts
     __enable_interrupt();
     
- displayScrollText("HELLO");
- clearLCD();
+    displayScrollText("HELLO");
+    clearLCD();
+    __low_power_mode_3();                          //Enter low power mode
     while (1)
     {
-      if(RxMsg.status == REC)
-      {
-        RxMsg.status = STOP;
-        displayScrollText(RxMsg.pdata);
-        __delay_cycles(200000);
-      }
+    //Do nthn  
     }
 }
 

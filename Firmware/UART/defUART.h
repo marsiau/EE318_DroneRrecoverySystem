@@ -19,23 +19,24 @@
 #include <msp430.h>
 #include <stdint.h>                             //For uintX_t
 #include <stdbool.h>                            //For bool
+#include <string.h>                             //String manipulation
+#include "hal_LCD.h"
 
 //Define maximum message size for Rx
 #define MAX_MSG_SIZE 160
 
 //----- Structure declarations -----
-enum statusFlags{STOP, CONT, PAUSE, REC};
+enum statusFlags{STOP, CONT, PAUSE};
 //----- Structure declarations -----
 struct UARTMsgStruct
 {
   enum statusFlags status;
-  char *pdata;                                  //Pointer to char msg data
+  char data[MAX_MSG_SIZE];                      //Pointer to char msg data
   uint8_t len;
   uint8_t i;
 }extern TxMsg, RxMsg;
 
 //----- Variable declarations -----
-extern char RxData[MAX_MSG_SIZE];                    //Rx message data
 //Variable signaling whether HFC is enabled/disabled (RTS/CTS lines)
 extern bool HFC_flag;                           //Hardware Flow Controll Flag
 
@@ -44,7 +45,8 @@ void init_UART_GPIO();                          //Initialize UART GPIO
 void init_UART();                               //Initialize UART
 void enable_HFC();                              //Enable Hardware Flow Controll
 void disable_HFC();                             //Disable Hardware Flow Controll
-bool send_over_UART(char *pdata, uint8_t lenght);//Send msg over UART
+bool send_over_UART(char data[], uint8_t lenght); //Send msg over UART
+void parse_msg(char msgData[]);                //Parse received data
 #endif
 /*
 Notes:

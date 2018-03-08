@@ -17,7 +17,6 @@
 
 //----- Variable definitions -----
 struct UARTMsgStruct TxMsg, RxMsg;
-char RxData[MAX_MSG_SIZE];                    //Rx message data
 bool HFC_flag = false;
 
 //-------------------- Interupt handlers --------------------//
@@ -29,10 +28,11 @@ __interrupt void USCI_A0_ISR(void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:                 //Rx interrupt
-          RxData[RxMsg.i] = UCA0RXBUF;
           TA1CTL |= MC_0; TA1R = 0;             //Disable/reset the timer
+          RxMsg.data[RxMsg.i] = UCA0RXBUF;
           RxMsg.i++;
           TA1CTL |= MC_1;                       //Enable the timer
+          TA1CCTL0 |= CCIE;//CCR0 interrupt enabled
           break;
         case USCI_UART_UCTXIFG:                 //Tx interrupt
           if(TxMsg.i == TxMsg.len - 1)
@@ -43,7 +43,7 @@ __interrupt void USCI_A0_ISR(void)
           else
           {
             TxMsg.i++;
-            UCA0TXBUF = *(TxMsg.pdata + TxMsg.i);
+            UCA0TXBUF = TxMsg.data[TxMsg.i];
           }
           break;
         case USCI_UART_UCSTTIFG: break;
@@ -56,7 +56,10 @@ __interrupt void USCI_A0_ISR(void)
 __interrupt void TIMERA1_ISR(void) 
 {
   TA1CTL |= MC_0; TA1R = 0;             //Disable/reset the timer
-  RxMsg.status = REC;
+  TA1CCTL0 &= ~CCIE;//CCR0 interrupt disabled
+  parse_msg(RxMsg.data);               //Parse the received data
+  RxMsg.i =0;                           //Reset i to override the msg
+  RxMsg.status = STOP;
 }
 //----- Interupt rutine for GPIO CTS implementation-----
 #pragma vector = PORT2_VECTOR
@@ -79,7 +82,7 @@ __interrupt void P2_interrupt_handler(void)
       if(TxMsg.status == PAUSE)
       {
         //Start/Resume transmission
-        UCA0TXBUF = TxMsg.pdata[TxMsg.i];     //Load/reload data onto buffer
+        UCA0TXBUF = TxMsg.data[TxMsg.i];     //Load/reload data onto buffer
         UCA0IE |= UCTXIE;                       //Enable USCI_A0 TX interrupt
         TxMsg.status = CONT; 
         P4OUT  &= ~BIT0;                        //Turn off P4.0
@@ -118,7 +121,8 @@ void init_Rx_Timer()
   TA1CTL |= TASSEL_1 | MC_0;
   TA1R = 0;// Write inital counter value
   TA1CCR0 = 0xFFFF;//Count to max to get ~0.5s
-  TA1CCTL0 = CCIE;//CCR0 interrupt enabled
+  //TA1CCTL0 |= CCIE;//CCR0 interrupt enabled
+  TA1CCTL0 &= ~CCIE;//CCR0 interrupt disabled
 }
 
 void init_UART()
@@ -146,12 +150,10 @@ void init_UART()
   
   //Initialize TxMsg variable
   TxMsg.status = STOP;
-  TxMsg.pdata   = 0;                            //NULL
   TxMsg.len     = 0;
   TxMsg.i       = 0;
   //Initialize RxMsg variable
   RxMsg.status = STOP;
-  RxMsg.pdata   = RxData;                       //Same as *RxData[0]
   RxMsg.len     = 0;
   RxMsg.i       = 0;
 }
@@ -177,10 +179,12 @@ void disable_HFC()                              //Disable Hardware Flow Controll
   P2IE &= ~BIT7;                                //CTS interrupt disabled
   P8OUT |= BIT0;                               //P8.0 - on, RTS - off
 }
-bool send_over_UART(char *pdata, uint8_t lenght)
+bool send_over_UART(char data[], uint8_t lenght)
 {
   if(TxMsg.status != STOP)
+  {
     return false;                               //Other message is being sent
+  }
   else
   {
     if(HFC_flag)
@@ -189,7 +193,7 @@ bool send_over_UART(char *pdata, uint8_t lenght)
     }
     //Prepare data
     TxMsg.status = CONT;
-    TxMsg.pdata   = pdata;
+    strcpy(TxMsg.data, data);
     TxMsg.len     = lenght;
     TxMsg.i       = 0;
     if(HFC_flag && (P2IN & BIT7))               //If HFC enabled, CTS - off
@@ -201,8 +205,20 @@ bool send_over_UART(char *pdata, uint8_t lenght)
     else
     {
       UCA0IE |= UCTXIE;                         //Enable USCI_A0 TX interrupt
-      UCA0TXBUF = TxMsg.pdata[TxMsg.i];       //Load data onto buffer
+      UCA0TXBUF = TxMsg.data[TxMsg.i];       //Load data onto buffer
     }
     return true;
   }
  }
+
+void parse_msg(char msgData[])                //Parse received data
+{
+  if(strstr(RxMsg.data, "OK") != NULL)
+  {
+    displayScrollText("OK");
+  }
+  else
+  {
+    displayScrollText("NOP");
+  }
+}

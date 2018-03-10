@@ -213,10 +213,20 @@ bool send_over_UART(char data[], uint8_t lenght)
 
 void parse_msg(char msgData[])                //Parse received data
 {
-  if(strstr(RxMsg.data, "OK") != NULL)
+  /*
+  
+rv                              //Returns voltage of the cells
+rloc                            //Returns location
+setvt                           //Sets voltage threshold
+setnr                           //Sets phone number
+bon                             //Buzzer on
+boff                            //Buzzer 
+  */
+  if(strstr(msgData, "OK") != NULL)
   {
     displayScrollText("OK");
   }
+  //Include the other commands
   else
   {
     displayScrollText("NOP");

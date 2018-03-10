@@ -19,7 +19,7 @@ __interrupt void P1_interrupt_handler(void)
   switch(__even_in_range(P1IV,P1IV_P1IFG7))//Checks all pins on P1
   {
   case P1IV_P1IFG2:                             //PIN2 - SW1
-    __delay_cycles(100);                        //Simple debauncing
+    __delay_cycles(10000);                      //Simple debauncing
     if(!(P1IN & BIT2))
     {
       send_over_UART(msg, sizeof(msg)-1);

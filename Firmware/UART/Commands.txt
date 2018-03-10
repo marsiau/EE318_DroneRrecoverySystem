@@ -1,0 +1,8 @@
+command                         //Comment
+
+rv                              //Returns voltage of the cells
+rloc                            //Returns location
+setvt                           //Sets voltage threshold
+setnr                           //Sets phone number
+bon                             //Buzzer on
+boff                            //Buzzer off

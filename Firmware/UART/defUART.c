@@ -18,6 +18,8 @@
 //----- Variable definitions -----
 struct UARTMsgStruct TxMsg, RxMsg;
 bool HFC_flag = false;
+char PHNR[13] = "+447923255364";                //My number as default 
+float CELLTH = 3.8;                             //Cell threshold level
 
 //-------------------- Interupt handlers --------------------//
 //----- Interupt rutine for UART -----
@@ -61,6 +63,7 @@ __interrupt void TIMERA1_ISR(void)
   RxMsg.i =0;                           //Reset i to override the msg
   RxMsg.status = STOP;
 }
+
 //----- Interupt rutine for GPIO CTS implementation-----
 #pragma vector = PORT2_VECTOR
 __interrupt void P2_interrupt_handler(void)
@@ -93,6 +96,7 @@ __interrupt void P2_interrupt_handler(void)
     break;
   }
 }
+
 //-------------------- Function definitions --------------------//
 void init_UART_GPIO()
 {
@@ -179,6 +183,19 @@ void disable_HFC()                              //Disable Hardware Flow Controll
   P2IE &= ~BIT7;                                //CTS interrupt disabled
   P8OUT |= BIT0;                               //P8.0 - on, RTS - off
 }
+
+void sel_GPS()                                   //Multiplex to GPS
+{
+  disable_HFC();
+  
+}
+
+void sel_GSM();                                 //Multiplex to GSM
+{
+  enable_HFC();
+  
+}
+
 bool send_over_UART(char data[], uint8_t lenght)
 {
   if(TxMsg.status != STOP)
@@ -213,22 +230,51 @@ bool send_over_UART(char data[], uint8_t lenght)
 
 void parse_msg(char msgData[])                //Parse received data
 {
-  /*
+  char *pstr;
   
-rv                              //Returns voltage of the cells
-rloc                            //Returns location
-setvt                           //Sets voltage threshold
-setnr                           //Sets phone number
-bon                             //Buzzer on
-boff                            //Buzzer 
-  */
   if(strstr(msgData, "OK") != NULL)
   {
     displayScrollText("OK");
+    pstr = NULL;                        //Reset the pstr and chech for other commands
   }
-  //Include the other commands
-  else
+  pstr = strstr(msgData, "setnr=");
+  if(pstr != NULL)
   {
-    displayScrollText("NOP");
+    SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
+    strncpy(PHNR, pstr+6, 13);          //Update the phone number
+    SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
+    pstr = NULL;
+  }
+  pstr = strstr(msgData, "setvt=");
+  if(pstr != NULL)
+  {
+    SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
+    CELLTH = (float)*(pstr+6);          //Update the cell threshold
+    SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
+    pstr = NULL;
+  }
+  if(strstr(msgData, "bon") != NULL)
+  {
+    displayScrollText("BUZZER ON");
+    //Turn on the buzzer
+    pstr = NULL;
+  }
+  if(strstr(msgData, "boff") != NULL)
+  {
+    displayScrollText("BUZZER OFF");
+    //Turn off the buzzer
+    pstr = NULL;
+  }
+  if(strstr(msgData, "rv") != NULL)
+  {
+    displayScrollText("SENDING CURRENT CELL VOLTAGES");
+    //Send the data
+    pstr = NULL;
+  }
+  if(strstr(msgData, "rloc") != NULL)
+  {
+    displayScrollText("SENDING CURRENT LOCATION");
+    //Send the data
+    pstr = NULL;
   }
 }

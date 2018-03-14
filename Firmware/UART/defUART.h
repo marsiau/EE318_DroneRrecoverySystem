@@ -25,6 +25,10 @@
 //Define maximum message size for Rx
 #define MAX_MSG_SIZE 160
 
+//Using FRAM to store persistant information
+__persistent extern char PHNR[13];              //Hate C linker...
+__persistent extern float CELLTH;               //Still hate it...
+
 //----- Structure declarations -----
 enum statusFlags{STOP, CONT, PAUSE};
 //----- Structure declarations -----
@@ -45,9 +49,12 @@ void init_UART_GPIO();                          //Initialize UART GPIO
 void init_UART();                               //Initialize UART
 void enable_HFC();                              //Enable Hardware Flow Controll
 void disable_HFC();                             //Disable Hardware Flow Controll
+void sel_GPS();                                 //Multiplex to GPS
+void sel_GSM();                                 //Multiplex to GSM
 bool send_over_UART(char data[], uint8_t lenght); //Send msg over UART
 void parse_msg(char msgData[]);                //Parse received data
 #endif
+
 /*
 Notes:
 uintX_t and boolean type variables are used as they:

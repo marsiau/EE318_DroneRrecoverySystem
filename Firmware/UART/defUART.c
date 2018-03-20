@@ -57,10 +57,11 @@ __interrupt void USCI_A0_ISR(void)
 #pragma vector = TIMER1_A0_VECTOR
 __interrupt void TIMERA1_ISR(void) 
 {
-  TA1CTL |= MC_0; TA1R = 0;             //Disable/reset the timer
-  TA1CCTL0 &= ~CCIE;//CCR0 interrupt disabled
-  parse_msg(RxMsg.data);               //Parse the received data
-  RxMsg.i =0;                           //Reset i to override the msg
+  TA1CTL |= MC_0; TA1R = 0;                     //Disable/reset the timer
+  TA1CCTL0 &= ~CCIE;                            //CCR0 interrupt disabled
+  parse_msg(RxMsg.data);                        //Parse the received data
+  RxMsg.i = 0;                                  //Reset i
+  memset(RxMsg.data, 0, sizeof(RxMsg.data));    //Clean the memory
   RxMsg.status = STOP;
 }
 
@@ -190,7 +191,7 @@ void sel_GPS()                                   //Multiplex to GPS
   
 }
 
-void sel_GSM();                                 //Multiplex to GSM
+void sel_GSM()                                 //Multiplex to GSM
 {
   enable_HFC();
   
@@ -230,13 +231,33 @@ bool send_over_UART(char data[], uint8_t lenght)
 
 void parse_msg(char msgData[])                //Parse received data
 {
-  char *pstr;
-  
+  char *pstr = NULL;
+  //Tear 1
   if(strstr(msgData, "OK") != NULL)
   {
     displayScrollText("OK");
-    pstr = NULL;                        //Reset the pstr and chech for other commands
   }
+  if(strstr(msgData, "bon") != NULL)
+  {
+    displayScrollText("BUZZER ON");
+    //Turn on the buzzer
+  }
+  if(strstr(msgData, "boff") != NULL)
+  {
+    displayScrollText("BUZZER OFF");
+    //Turn off the buzzer
+  }
+  if(strstr(msgData, "rv") != NULL)
+  {
+    displayScrollText("SENDING CURRENT CELL VOLTAGES");
+    //Send the data
+  }
+  if(strstr(msgData, "rloc") != NULL)
+  {
+    displayScrollText("SENDING CURRENT LOCATION");
+    //Send the data
+  }
+  //Tear 2, using pstr
   pstr = strstr(msgData, "setnr=");
   if(pstr != NULL)
   {
@@ -253,28 +274,5 @@ void parse_msg(char msgData[])                //Parse received data
     SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
     pstr = NULL;
   }
-  if(strstr(msgData, "bon") != NULL)
-  {
-    displayScrollText("BUZZER ON");
-    //Turn on the buzzer
-    pstr = NULL;
-  }
-  if(strstr(msgData, "boff") != NULL)
-  {
-    displayScrollText("BUZZER OFF");
-    //Turn off the buzzer
-    pstr = NULL;
-  }
-  if(strstr(msgData, "rv") != NULL)
-  {
-    displayScrollText("SENDING CURRENT CELL VOLTAGES");
-    //Send the data
-    pstr = NULL;
-  }
-  if(strstr(msgData, "rloc") != NULL)
-  {
-    displayScrollText("SENDING CURRENT LOCATION");
-    //Send the data
-    pstr = NULL;
-  }
+  clearLCD();
 }

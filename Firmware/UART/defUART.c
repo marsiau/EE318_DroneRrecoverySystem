@@ -20,6 +20,7 @@ struct UARTMsgStruct TxMsg, RxMsg;
 bool HFC_flag = false;
 char PHNR[13] = "+447923255364";                //My number as default 
 float CELLTH = 3.8;                             //Cell threshold level
+char polled_msg[POLLED_MSG_SIZE];
 
 //-------------------- Interupt handlers --------------------//
 //----- Interupt rutine for UART -----
@@ -30,11 +31,20 @@ __interrupt void USCI_A0_ISR(void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:                 //Rx interrupt
-          TA1CTL |= MC_0; TA1R = 0;             //Disable/reset the timer
+          TA1CTL |= MC_0;                       //Stop the timer
+          TA1CTL |= TACLR;                      //Reset the timer
+          TA1R = 0x00;                          //Reset counter value
           RxMsg.data[RxMsg.i] = UCA0RXBUF;
           RxMsg.i++;
+          RxMsg.status = CONT;
+          TA1CCTL0 = CCIE;                              // TACCR0 interrupt enabled
           TA1CTL |= MC_1;                       //Enable the timer
-          TA1CCTL0 |= CCIE;//CCR0 interrupt enabled
+          //Debugging
+          if( P8OUT & BIT2)
+          {P8OUT &= ~BIT2;}
+          else
+          {P8OUT |= BIT2;}
+          
           break;
         case USCI_UART_UCTXIFG:                 //Tx interrupt
           if(TxMsg.i == TxMsg.len - 1)
@@ -55,14 +65,30 @@ __interrupt void USCI_A0_ISR(void)
 
 //----- Interrupt handler for timer-----
 #pragma vector = TIMER1_A0_VECTOR
-__interrupt void TIMERA1_ISR(void) 
+__interrupt void Timer1_A0_ISR(void)
 {
-  TA1CTL |= MC_0; TA1R = 0;                     //Disable/reset the timer
-  TA1CCTL0 &= ~CCIE;                            //CCR0 interrupt disabled
+  TA1CTL |= MC_0;                               //Stop the timer
+  TA1CTL |= TACLR;                              //Reset the timer
+  TA1R = 0x00;                                  //Reset counter value
+  TA1CCTL0 &= ~CCIE;                           //CCR0 interrupt disabled
+  //Debuging
+  if( P8OUT & BIT3)
+  {P8OUT &= ~BIT3;}
+  else
+  {P8OUT |= BIT3;}
+
   parse_msg(RxMsg.data);                        //Parse the received data
   RxMsg.i = 0;                                  //Reset i
   memset(RxMsg.data, 0, sizeof(RxMsg.data));    //Clean the memory
   RxMsg.status = STOP;
+  
+  //Debuging
+  if( P8OUT & BIT3)
+  {P8OUT &= ~BIT3;}
+  else
+  {P8OUT |= BIT3;} 
+  
+  __bic_SR_register_on_exit(LPM3_bits);         //Exit LPM3
 }
 
 //----- Interupt rutine for GPIO CTS implementation-----
@@ -103,31 +129,33 @@ void init_UART_GPIO()
 {
   // Configure UART Rx/Tx pins
   P1SEL0 |= BIT0 | BIT1;                        //Set 2-UART pin as second function
-  // Configure UART RTS/CTS pins
-    //RTS
-  P8SEL0 |= BIT0;                               //P8.0 (RTS) as output
-    //CTS
-  P2SEL0 &=  ~BIT7;                             //P2.7(CTS) as input
-  P2REN  |=   BIT7;                             //Enable pull up/down resistor 
+  //RTS
+  P8DIR |= BIT0;                                //P8.0 (RTS) as output
+  P8OUT |= BIT0;
+  //Mux pins
+  P8DIR |=  BIT2 | BIT3;                        //P8.2 and P8.3 as out
+  P8OUT |=  BIT2 | BIT3;
+  //CTS
+  P2DIR &=  ~BIT7;                              //P2.7(CTS) as input
+  P2REN |=   BIT7;                              //Enable pull up/down resistor 
   //P2OUT  |=   BIT7;                             //Enable pull Up
-  P2OUT  &=   ~BIT7;                            //Enable pull Down
-  //MUX pins
-  
-    //LED
+  P2OUT &=   ~BIT7;                             //Enable pull Down
+  //LED
   P4DIR |= BIT0;                                //P4.0 as output
   P4OUT &= ~BIT0;                               //Turn P4.0 off
+  
 }
 
 void init_Rx_Timer()
 {
   //ACLK = 32768Hz
   TA1CTL |= TACLR;// Clear the timer.
+  TA1CTL |= TASSEL_1 | ID_0 | MC_0; 
+  TA1R = 0x00;
+  TA1CCR0 =  0x2000;                            //Count to to get ~0.25s
+  //TA1CCTL0 &= ~CCIE;                            //CCR0 interrupt disabled
+  TA1CCTL0 = CCIE;                             //CCR0 interrupt enabled
   //ACLK as clock, timer turned off, 
-  TA1CTL |= TASSEL_1 | MC_0;
-  TA1R = 0;// Write inital counter value
-  TA1CCR0 = 0xFFFF;//Count to max to get ~0.5s
-  //TA1CCTL0 |= CCIE;//CCR0 interrupt enabled
-  TA1CCTL0 &= ~CCIE;//CCR0 interrupt disabled
 }
 
 void init_UART()
@@ -182,10 +210,10 @@ void disable_HFC()                              //Disable Hardware Flow Controll
 {
   HFC_flag = false;
   P2IE &= ~BIT7;                                //CTS interrupt disabled
-  P8OUT |= BIT0;                               //P8.0 - on, RTS - off
+  P8OUT |= BIT0;                                //P8.0 - on, RTS - off
 }
 
-void sel_GPS()                                   //Multiplex to GPS
+void sel_GPS()                                  //Multiplex to GPS
 {
   disable_HFC();
   
@@ -235,26 +263,28 @@ void parse_msg(char msgData[])                //Parse received data
   //Tear 1
   if(strstr(msgData, "OK") != NULL)
   {
-    displayScrollText("OK");
+    strcat(polled_msg, "OK");
   }
   if(strstr(msgData, "bon") != NULL)
   {
-    displayScrollText("BUZZER ON");
+    strcat(polled_msg, "BUZZER ON");
+    //strcpy(polled_msg, "BUZZER ON");
     //Turn on the buzzer
   }
   if(strstr(msgData, "boff") != NULL)
   {
-    displayScrollText("BUZZER OFF");
+    strcat(polled_msg, "BUZZER OFF");
+    //strcpy(polled_msg, "BUZZER OFF");
     //Turn off the buzzer
   }
   if(strstr(msgData, "rv") != NULL)
   {
-    displayScrollText("SENDING CURRENT CELL VOLTAGES");
+    strcat(polled_msg, "SENDING CURRENT CELL VOLTAGES");
     //Send the data
   }
   if(strstr(msgData, "rloc") != NULL)
   {
-    displayScrollText("SENDING CURRENT LOCATION");
+    strcat(polled_msg, "SENDING CURRENT LOCATION");
     //Send the data
   }
   //Tear 2, using pstr
@@ -264,6 +294,7 @@ void parse_msg(char msgData[])                //Parse received data
     SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
     strncpy(PHNR, pstr+6, 13);          //Update the phone number
     SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
+    strcat(polled_msg, "PHONE NUMBER UPDATED");
     pstr = NULL;
   }
   pstr = strstr(msgData, "setvt=");
@@ -272,7 +303,15 @@ void parse_msg(char msgData[])                //Parse received data
     SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
     CELLTH = (float)*(pstr+6);          //Update the cell threshold
     SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
+    strcat(polled_msg, "VOLTAGE THRESHOLD UPDATED");
     pstr = NULL;
   }
-  clearLCD();
+   
+  pstr = strstr(msgData, "GPRMC");
+  if(pstr != NULL)
+  {
+    //Extract required data and send it over GSM
+    strcat(polled_msg, "GPS DATA RECEIVED");
+    pstr = NULL;
+  }
 }

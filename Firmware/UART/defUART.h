@@ -22,8 +22,9 @@
 #include <string.h>                             //String manipulation
 #include "hal_LCD.h"
 
-//Define maximum message size for Rx
-#define MAX_MSG_SIZE 160
+//Define maximum message size for Rx and Tx
+#define MAX_MSG_SIZE 700                        //GPS messages are over 600chars
+#define POLLED_MSG_SIZE 150
 
 //Using FRAM to store persistant information
 __persistent extern char PHNR[13];              //Hate C linker...
@@ -43,6 +44,7 @@ struct UARTMsgStruct
 //----- Variable declarations -----
 //Variable signaling whether HFC is enabled/disabled (RTS/CTS lines)
 extern bool HFC_flag;                           //Hardware Flow Controll Flag
+extern char polled_msg[POLLED_MSG_SIZE];
 
 //----- Function declarations -----
 void init_UART_GPIO();                          //Initialize UART GPIO
@@ -51,7 +53,7 @@ void enable_HFC();                              //Enable Hardware Flow Controll
 void disable_HFC();                             //Disable Hardware Flow Controll
 void sel_GPS();                                 //Multiplex to GPS
 void sel_GSM();                                 //Multiplex to GSM
-bool send_over_UART(char data[], uint8_t lenght); //Send msg over UART
+bool send_over_UART(char data[], uint8_t lenght);//Send msg over UART
 void parse_msg(char msgData[]);                //Parse received data
 #endif
 

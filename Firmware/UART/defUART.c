@@ -34,17 +34,22 @@ __interrupt void USCI_A0_ISR(void)
           TA1CTL |= MC_0;                       //Stop the timer
           TA1CTL |= TACLR;                      //Reset the timer
           TA1R = 0x00;                          //Reset counter value
-          RxMsg.data[RxMsg.i] = UCA0RXBUF;
+          RxMsg.data[RxMsg.i] = UCA0RXBUF;      //Store received byte
           RxMsg.i++;
-          RxMsg.status = CONT;
-          TA1CCTL0 = CCIE;                              // TACCR0 interrupt enabled
-          TA1CTL |= MC_1;                       //Enable the timer
-          //Debugging
-          if( P8OUT & BIT2)
-          {P8OUT &= ~BIT2;}
+          //Check if the buffer is full
+          if(RxMsg.i == MAX_MSG_SIZE)
+          {
+            parse_msg();                        //Parse the received data
+            RxMsg.i = 0;                        //Reset i
+            memset(RxMsg.data, 0, MAX_MSG_SIZE);//Clean the memory
+            RxMsg.status = STOP;
+          }
           else
-          {P8OUT |= BIT2;}
-          
+          {
+            RxMsg.status = CONT;
+            TA1CCTL0 = CCIE;                    //TACCR0 interrupt enabled
+            TA1CTL |= MC_1;                     //Enable the timer
+          }
           break;
         case USCI_UART_UCTXIFG:                 //Tx interrupt
           if(TxMsg.i == TxMsg.len - 1)
@@ -70,24 +75,11 @@ __interrupt void Timer1_A0_ISR(void)
   TA1CTL |= MC_0;                               //Stop the timer
   TA1CTL |= TACLR;                              //Reset the timer
   TA1R = 0x00;                                  //Reset counter value
-  TA1CCTL0 &= ~CCIE;                           //CCR0 interrupt disabled
-  //Debuging
-  if( P8OUT & BIT3)
-  {P8OUT &= ~BIT3;}
-  else
-  {P8OUT |= BIT3;}
-
-  parse_msg(RxMsg.data);                        //Parse the received data
+  TA1CCTL0 &= ~CCIE;                            //CCR0 interrupt disabled
+  parse_msg();                                  //Parse the received data
   RxMsg.i = 0;                                  //Reset i
-  memset(RxMsg.data, 0, sizeof(RxMsg.data));    //Clean the memory
+  memset(RxMsg.data, 0, MAX_MSG_SIZE);          //Clean the memory
   RxMsg.status = STOP;
-  
-  //Debuging
-  if( P8OUT & BIT3)
-  {P8OUT &= ~BIT3;}
-  else
-  {P8OUT |= BIT3;} 
-  
   __bic_SR_register_on_exit(LPM3_bits);         //Exit LPM3
 }
 
@@ -179,7 +171,7 @@ void init_UART()
   UCA0BR1 = 0;
   UCA0CTLW0 &= ~UCSWRST;                        //Initialize eUSCI
  
-  UCA0IE |= UCRXIE;                           // Enable USCI_A0 RX interrupt
+  UCA0IE |= UCRXIE;                             // Enable USCI_A0 RX interrupt
   
   //Initialize TxMsg variable
   TxMsg.status = STOP;
@@ -257,61 +249,61 @@ bool send_over_UART(char data[], uint8_t lenght)
   }
  }
 
-void parse_msg(char msgData[])                //Parse received data
+void parse_msg()                //Parse received data
 {
   char *pstr = NULL;
   //Tear 1
-  if(strstr(msgData, "OK") != NULL)
+  if(strstr(RxMsg.data, "OK") != NULL)
   {
-    strcat(polled_msg, "OK");
+    strcat(polled_msg, "OK ");
   }
-  if(strstr(msgData, "bon") != NULL)
+  if(strstr(RxMsg.data, "bon") != NULL)
   {
-    strcat(polled_msg, "BUZZER ON");
+    strcat(polled_msg, "BUZZER ON ");
     //strcpy(polled_msg, "BUZZER ON");
     //Turn on the buzzer
   }
-  if(strstr(msgData, "boff") != NULL)
+  if(strstr(RxMsg.data, "boff") != NULL)
   {
-    strcat(polled_msg, "BUZZER OFF");
+    strcat(polled_msg, "BUZZER OFF ");
     //strcpy(polled_msg, "BUZZER OFF");
     //Turn off the buzzer
   }
-  if(strstr(msgData, "rv") != NULL)
+  if(strstr(RxMsg.data, "rv") != NULL)
   {
-    strcat(polled_msg, "SENDING CURRENT CELL VOLTAGES");
+    strcat(polled_msg, "SENDING CURRENT CELL VOLTAGES ");
     //Send the data
   }
-  if(strstr(msgData, "rloc") != NULL)
+  if(strstr(RxMsg.data, "rloc") != NULL)
   {
-    strcat(polled_msg, "SENDING CURRENT LOCATION");
+    strcat(polled_msg, "SENDING CURRENT LOCATION ");
     //Send the data
   }
   //Tear 2, using pstr
-  pstr = strstr(msgData, "setnr=");
+  pstr = strstr(RxMsg.data, "setnr=");
   if(pstr != NULL)
   {
     SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
     strncpy(PHNR, pstr+6, 13);          //Update the phone number
     SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
-    strcat(polled_msg, "PHONE NUMBER UPDATED");
+    strcat(polled_msg, "PHONE NUMBER UPDATED ");
     pstr = NULL;
   }
-  pstr = strstr(msgData, "setvt=");
+  pstr = strstr(RxMsg.data, "setvt=");
   if(pstr != NULL)
   {
     SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
     CELLTH = (float)*(pstr+6);          //Update the cell threshold
     SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
-    strcat(polled_msg, "VOLTAGE THRESHOLD UPDATED");
+    strcat(polled_msg, "VOLTAGE THRESHOLD UPDATED ");
     pstr = NULL;
   }
-   
-  pstr = strstr(msgData, "GPRMC");
+  pstr = strstr(RxMsg.data, "$GPRMC");
   if(pstr != NULL)
   {
     //Extract required data and send it over GSM
-    strcat(polled_msg, "GPS DATA RECEIVED");
+    strcat(polled_msg, "GPS DATA RECEIVED ");
     pstr = NULL;
+    //sel_GSM();                                 //Multiplex to GSM
   }
 }

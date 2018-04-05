@@ -47,12 +47,12 @@ int main(void)
   P1IE  |= BIT2; //Interrupt enabled
   P1IFG &= ~BIT2; // P1.2 interrupt flag cleared      
 
-  //Enable interrupts
-  __enable_interrupt();
-
   displayScrollText("HELLO");
   clearLCD();
-
+  
+  //Enable interrupts
+  __enable_interrupt();
+  
   while (1)
   {
     if(polled_msg[0] != '\0')
@@ -68,7 +68,7 @@ int main(void)
     }
     else
     {
-      __bis_SR_register(LPM3_bits | GIE);     // Enter LPM3 w/interrupt 
+      __bis_SR_register(LPM3_bits + GIE);     // Enter LPM3 w/interrupt 
       __no_operation();                       // For debugger
     }
   }

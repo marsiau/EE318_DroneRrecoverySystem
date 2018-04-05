@@ -23,7 +23,7 @@
 #include "hal_LCD.h"
 
 //Define maximum message size for Rx and Tx
-#define MAX_MSG_SIZE 700                        //GPS messages are over 600chars
+#define MAX_MSG_SIZE 255                        //GPS messages are over 600chars
 #define POLLED_MSG_SIZE 150
 
 //Using FRAM to store persistant information
@@ -54,7 +54,7 @@ void disable_HFC();                             //Disable Hardware Flow Controll
 void sel_GPS();                                 //Multiplex to GPS
 void sel_GSM();                                 //Multiplex to GSM
 bool send_over_UART(char data[], uint8_t lenght);//Send msg over UART
-void parse_msg(char msgData[]);                //Parse received data
+void parse_msg();                //Parse received data
 #endif
 
 /*

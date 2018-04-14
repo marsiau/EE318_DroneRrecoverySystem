@@ -125,8 +125,11 @@ void init_UART_GPIO()
   P8DIR |= BIT0;                                //P8.0 (RTS) as output
   P8OUT |= BIT0;
   //Mux pins
-  P8DIR |=  BIT2 | BIT3;                        //P8.2 and P8.3 as out
-  P8OUT |=  BIT2 | BIT3;
+    //Initiate as disconnected
+  P5DIR |=  BIT1;                               //S
+  P5OUT |=  BIT1;                               //Does not matter
+  P2DIR |=  BIT5;                               //OE
+  P2OUT |=  BIT5;
   //CTS
   P2DIR &=  ~BIT7;                              //P2.7(CTS) as input
   P2REN |=   BIT7;                              //Enable pull up/down resistor 
@@ -162,7 +165,9 @@ void init_UART()
     1000000/9600 = 104.166 >> 16 - Using the oversampling mode
     -> OS16 = 1, 
     -> UCBRx = INT(N/16) = INT(104.166/16) = INT(6.510) = 6
-    -> UCBRFx = INT([(N/16) - INT(N/16)]*16) = INT([6.51 - 0.51]*16) = 96, makes no sense from table = 8
+    -> UCBRFx = INT([(N/16) - INT(N/16)]*16) = INT([6.51 - 0.51]*16) = 96
+      Seems to be an error in the User guide, using values from Table 15-4 
+      UCBRFx = 0x8;
     -> From Table 15-4 UCBRSx = 0x20
   */
   UCA0BR0 = 6;                              
@@ -194,8 +199,8 @@ void enable_HFC()                              //Enable Hardware Flow Controll
   {
     P2IES  &=  ~BIT7;                           //Interrupt on low-to-high transition
   }
-  P2IE   |=   BIT7;                             //CTS interrupt enabled
-  P2IFG   &=  ~BIT7;                            //Interrupt flag cleared
+  P2IE  |=  BIT7;                               //CTS interrupt enabled
+  P2IFG &= ~BIT7;                               //Interrupt flag cleared
   P8OUT &= ~BIT0;                               //P8.0 - off, RTS - on
 }
 void disable_HFC()                              //Disable Hardware Flow Controll
@@ -207,14 +212,18 @@ void disable_HFC()                              //Disable Hardware Flow Controll
 
 void sel_GPS()                                  //Multiplex to GPS
 {
+  // A = B1
+  P5OUT &=  ~BIT1;
+  P2OUT &=  ~BIT5;
   disable_HFC();
-  
 }
 
 void sel_GSM()                                 //Multiplex to GSM
 {
+  // A = B2
+  P5OUT |=  BIT1;
+  P2OUT &=  ~BIT5;
   enable_HFC();
-  
 }
 
 bool send_over_UART(char data[], uint8_t lenght)

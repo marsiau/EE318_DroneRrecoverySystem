@@ -36,7 +36,7 @@ enum statusFlags{STOP, CONT, PAUSE};
 struct UARTMsgStruct
 {
   enum statusFlags status;
-  char data[MAX_MSG_SIZE];                      //Pointer to char msg data
+  char data[MAX_MSG_SIZE];
   uint8_t len;
   uint8_t i;
 }extern TxMsg, RxMsg;

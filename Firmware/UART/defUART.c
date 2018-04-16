@@ -31,9 +31,9 @@ __interrupt void USCI_A0_ISR(void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:                 //Rx interrupt
-          TA1CTL |= MC_0;                       //Stop the timer
-          TA1CTL |= TACLR;                      //Reset the timer
-          TA1R = 0x00;                          //Reset counter value
+          TA0CTL |= MC_0;                       //Stop the timer
+          TA0CTL |= TACLR;                      //Reset the timer
+          TA0R = 0x00;                          //Reset counter value
           RxMsg.data[RxMsg.i] = UCA0RXBUF;      //Store received byte
           RxMsg.i++;
           //Check if the buffer is full
@@ -47,8 +47,8 @@ __interrupt void USCI_A0_ISR(void)
           else
           {
             RxMsg.status = CONT;
-            TA1CCTL0 = CCIE;                    //TACCR0 interrupt enabled
-            TA1CTL |= MC_1;                     //Enable the timer
+            TA0CCTL0 = CCIE;                    //TACCR0 interrupt enabled
+            TA0CTL |= MC_1;                     //Enable the timer
           }
           break;
         case USCI_UART_UCTXIFG:                 //Tx interrupt
@@ -69,13 +69,13 @@ __interrupt void USCI_A0_ISR(void)
 }
 
 //----- Interrupt handler for timer-----
-#pragma vector = TIMER1_A0_VECTOR
-__interrupt void Timer1_A0_ISR(void)
+#pragma vector = TIMER0_A0_VECTOR
+__interrupt void Timer0_A0_ISR(void)
 {
-  TA1CTL |= MC_0;                               //Stop the timer
-  TA1CTL |= TACLR;                              //Reset the timer
-  TA1R = 0x00;                                  //Reset counter value
-  TA1CCTL0 &= ~CCIE;                            //CCR0 interrupt disabled
+  TA0CTL |= MC_0;                               //Stop the timer
+  TA0CTL |= TACLR;                              //Reset the timer
+  TA0R = 0x00;                                  //Reset counter value
+  TA0CCTL0 &= ~CCIE;                            //CCR0 interrupt disabled
   parse_msg();                                  //Parse the received data
   RxMsg.i = 0;                                  //Reset i
   memset(RxMsg.data, 0, MAX_MSG_SIZE);          //Clean the memory
@@ -144,12 +144,11 @@ void init_UART_GPIO()
 void init_Rx_Timer()
 {
   //ACLK = 32768Hz
-  TA1CTL |= TACLR;// Clear the timer.
-  TA1CTL |= TASSEL_1 | ID_0 | MC_0; 
-  TA1R = 0x00;
-  TA1CCR0 =  0x2000;                            //Count to to get ~0.25s
-  //TA1CCTL0 &= ~CCIE;                            //CCR0 interrupt disabled
-  TA1CCTL0 = CCIE;                             //CCR0 interrupt enabled
+  TA0CTL |= TACLR;// Clear the timer.
+  TA0CTL |= TASSEL_1 | ID_0 | MC_0; 
+  TA0R = 0x00;
+  TA0CCR0 =  0x2000;                            //Count to to get ~0.25s
+  TA0CCTL0 = CCIE;                             //CCR0 interrupt enabled
   //ACLK as clock, timer turned off, 
 }
 

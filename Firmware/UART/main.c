@@ -36,7 +36,9 @@ int main(void)
                                             // to activate previously configured port settings
   Init_LCD();         //for debugging
   init_UART(); 
-  disable_HFC();
+  sel_GPS();
+  //sel_GSM();
+  //disable_HFC();
   //enable_HFC();
   //Configure GPIO pins
     //Button

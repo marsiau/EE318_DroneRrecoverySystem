@@ -18,9 +18,11 @@
 //----- Variable definitions -----
 struct UARTMsgStruct TxMsg, RxMsg;
 bool HFC_flag = false;
-char PHNR[13] = "+447923255364";                //My number as default 
+char PHNR[12] = {"07923255364"};                //My number as default 
 float CELLTH = 3.8;                             //Cell threshold level
-char polled_msg[POLLED_MSG_SIZE];
+char sms_msg[MAX_MSG_SIZE] = "";
+char temp_msg[MAX_MSG_SIZE] = "";
+char polled_msg[POLLED_MSG_SIZE] = "";
 
 //-------------------- Interupt handlers --------------------//
 //----- Interupt rutine for UART -----
@@ -52,10 +54,11 @@ __interrupt void USCI_A0_ISR(void)
           }
           break;
         case USCI_UART_UCTXIFG:                 //Tx interrupt
-          if(TxMsg.i == TxMsg.len - 1)
+          if(TxMsg.i == TxMsg.len - 2)
           {
             UCA0IE &= ~UCTXIE;                  //Disable USCI_A0 TX interrupt
             TxMsg.status = STOP;
+            memset(TxMsg.data, 0, MAX_MSG_SIZE);
           }
           else
           {
@@ -225,13 +228,9 @@ void sel_GSM()                                 //Multiplex to GSM
   enable_HFC();
 }
 
-bool send_over_UART(char data[], uint8_t lenght)
+void send_over_UART(char data[], uint8_t lenght)
 {
-  if(TxMsg.status != STOP)
-  {
-    return false;                               //Other message is being sent
-  }
-  else
+  if(TxMsg.status == STOP)
   {
     if(HFC_flag)
     { 
@@ -253,7 +252,6 @@ bool send_over_UART(char data[], uint8_t lenght)
       UCA0IE |= UCTXIE;                         //Enable USCI_A0 TX interrupt
       UCA0TXBUF = TxMsg.data[TxMsg.i];       //Load data onto buffer
     }
-    return true;
   }
  }
 
@@ -265,47 +263,75 @@ void parse_msg()                //Parse received data
   {
     strcat(polled_msg, "OK ");
   }
-  if(strstr(RxMsg.data, "bon") != NULL)
+  else if(strstr(RxMsg.data, "ERROR") != NULL)
   {
-    strcat(polled_msg, "BUZZER ON ");
-    //strcpy(polled_msg, "BUZZER ON");
-    //Turn on the buzzer
+    send_over_UART("AT+CMGD=1,4\r\n",15);
   }
-  if(strstr(RxMsg.data, "boff") != NULL)
+  else
   {
-    strcat(polled_msg, "BUZZER OFF ");
-    //strcpy(polled_msg, "BUZZER OFF");
-    //Turn off the buzzer
+    if(strstr(RxMsg.data, "bon") != NULL)
+    {
+      strcat(polled_msg, "BUZZER ON ");
+      //strcpy(polled_msg, "BUZZER ON");
+      //Turn on the buzzer
+    }
+    if(strstr(RxMsg.data, "boff") != NULL)
+    {
+      strcat(polled_msg, "BUZZER OFF ");
+      //strcpy(polled_msg, "BUZZER OFF");
+      //Turn off the buzzer
+    }
+    if(strstr(RxMsg.data, "rv") != NULL)
+    {
+      strcat(polled_msg, "SENDING CURRENT CELL VOLTAGES ");
+      //Send the data
+    }
+    if(strstr(RxMsg.data, "rloc") != NULL)
+    {
+      strcat(polled_msg, "SENDING CURRENT LOCATION ");
+      //Send the data
+    }
+    //Tear 2, using pstr
+    pstr = strstr(RxMsg.data, "setnr=");
+    if(pstr != NULL)
+    {
+      SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
+      strncpy(PHNR, pstr+6, 13);          //Update the phone number
+      SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
+      strcat(polled_msg, "PHONE NUMBER UPDATED ");
+      pstr = NULL;
+    }
+    pstr = strstr(RxMsg.data, "setvt=");
+    if(pstr != NULL)
+    {
+      SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
+      CELLTH = (float)*(pstr+6);          //Update the cell threshold
+      SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
+      strcat(polled_msg, "VOLTAGE THRESHOLD UPDATED ");
+      pstr = NULL;
+    }
+    //--------------- GSM ---------------
+    if(strstr(RxMsg.data, ">") != NULL)
+    { 
+      //Send the message
+      strcpy(temp_msg, sms_msg);
+      strcat(temp_msg, "\n\032\r\n");
+      send_over_UART(temp_msg, strlen(temp_msg)+1);
+      memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
+    }
+    pstr = strstr(RxMsg.data, "CMGW:");
+    if(pstr != NULL)
+    {
+      strcpy(temp_msg, "AT+CMSS=");
+      strncat(temp_msg, (pstr+6),2);
+      strcat(temp_msg, "\r\n");
+      strcat(polled_msg, temp_msg);
+      send_over_UART(temp_msg, strlen(temp_msg)+1);
+      memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
+      pstr = NULL;
+    }
   }
-  if(strstr(RxMsg.data, "rv") != NULL)
-  {
-    strcat(polled_msg, "SENDING CURRENT CELL VOLTAGES ");
-    //Send the data
-  }
-  if(strstr(RxMsg.data, "rloc") != NULL)
-  {
-    strcat(polled_msg, "SENDING CURRENT LOCATION ");
-    //Send the data
-  }
-  //Tear 2, using pstr
-  pstr = strstr(RxMsg.data, "setnr=");
-  if(pstr != NULL)
-  {
-    SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
-    strncpy(PHNR, pstr+6, 13);          //Update the phone number
-    SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
-    strcat(polled_msg, "PHONE NUMBER UPDATED ");
-    pstr = NULL;
-  }
-  pstr = strstr(RxMsg.data, "setvt=");
-  if(pstr != NULL)
-  {
-    SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
-    CELLTH = (float)*(pstr+6);          //Update the cell threshold
-    SYSCFG0 |= PFWP;                    //Program FRAM write protected (not writable)
-    strcat(polled_msg, "VOLTAGE THRESHOLD UPDATED ");
-    pstr = NULL;
-  }
+  //--------------- GPS ---------------
   pstr = strstr(RxMsg.data, "$GPRMC");
   if(pstr != NULL)
   {
@@ -314,4 +340,16 @@ void parse_msg()                //Parse received data
     pstr = NULL;
     //sel_GSM();                                 //Multiplex to GSM
   }
+}
+
+void send_SMS(char data[])
+{
+  sel_GSM();
+  strcpy(sms_msg, data);//Store data for later
+  strcpy(temp_msg, "AT+CMGW=\"");
+  strcat(temp_msg, PHNR);
+  strcat(temp_msg, "\"\r\n");
+  //send_over_UART(temp_msg, 24);
+  send_over_UART(temp_msg, strlen(temp_msg)+1);
+  memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
 }

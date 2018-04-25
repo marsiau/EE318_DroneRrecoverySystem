@@ -18,7 +18,8 @@
 //----- Variable definitions -----
 struct UARTMsgStruct TxMsg, RxMsg;
 bool HFC_flag = false;
-char PHNR[12] = {"07923255364"};                //My number as default 
+//char PHNR[12] = {"07923255364"};                //My number as default 
+char PHNR[12] =   {"07543883279"};                //My number as default 
 float CELLTH = 3.8;                             //Cell threshold level
 char sms_msg[MAX_MSG_SIZE] = "";
 char temp_msg[MAX_MSG_SIZE] = "";
@@ -258,17 +259,17 @@ void send_over_UART(char data[], uint8_t lenght)
 void parse_msg()                //Parse received data
 {
   char *pstr = NULL;
-  //Tear 1
-  if(strstr(RxMsg.data, "OK") != NULL)
-  {
-    strcat(polled_msg, "OK ");
-  }
-  else if(strstr(RxMsg.data, "ERROR") != NULL)
+  if(strstr(RxMsg.data, "ERROR") != NULL)
   {
     send_over_UART("AT+CMGD=1,4\r\n",15);
   }
   else
   {
+    //Tear 1
+    if(strstr(RxMsg.data, "OK") != NULL)
+    {
+      strcat(polled_msg, "OK ");
+    }
     if(strstr(RxMsg.data, "bon") != NULL)
     {
       strcat(polled_msg, "BUZZER ON ");

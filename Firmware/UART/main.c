@@ -20,10 +20,11 @@ __interrupt void P1_interrupt_handler(void)
   switch(__even_in_range(P1IV,P1IV_P1IFG7))//Checks all pins on P1
   {
   case P1IV_P1IFG2:                             //PIN2 - SW1
-    __delay_cycles(10000);                      //Simple debauncing
+    __delay_cycles(5000);                      //Simple debauncing
     if(!(P1IN & BIT2))
     {
-      send_over_UART(TestMsg, sizeof(TestMsg)-1);
+      //send_over_UART(TestMsg, sizeof(TestMsg));
+      send_over_UART("AT+WOPEN=2\r\n", 13);
     }
     break;
   }
@@ -36,10 +37,8 @@ int main(void)
                                             // to activate previously configured port settings
   Init_LCD();         //for debugging
   init_UART(); 
-  sel_GPS();
-  //sel_GSM();
-  //disable_HFC();
-  //enable_HFC();
+  //sel_GPS();
+  sel_GSM();
   //Configure GPIO pins
     //Button
   P1DIR &= ~BIT2; //P1.2 as input
@@ -55,6 +54,7 @@ int main(void)
   //Enable interrupts
   __enable_interrupt();
   
+ 
   while (1)
   {
     if(polled_msg[0] != '\0')

@@ -52,7 +52,7 @@ __interrupt void USCI_A0_ISR(void)
           }
           break;
         case USCI_UART_UCTXIFG:                 //Tx interrupt
-          if(TxMsg.i == TxMsg.len - 1)
+          if(TxMsg.i == TxMsg.len - 2)          //1st index = 0, discard "/0" 
           {
             UCA0IE &= ~UCTXIE;                  //Disable USCI_A0 TX interrupt
             TxMsg.status = STOP;
@@ -306,12 +306,24 @@ void parse_msg()                //Parse received data
     strcat(polled_msg, "VOLTAGE THRESHOLD UPDATED ");
     pstr = NULL;
   }
+  //----GSM
+  pstr = strstr(RxMsg.data, "CMTI");
+  if(pstr != NULL)
+  {
+    //strcat(polled_msg, "SMS RECEIVED");
+    sel_GSM();                                 //Multiplex to GSM
+    send_over_UART("AT+CMGL=\"REC UNREAD\"\r\n", 23);
+    pstr = NULL;
+  }
+  
+  
+  //-----------------GPS
   pstr = strstr(RxMsg.data, "$GPRMC");
   if(pstr != NULL)
   {
-    //Extract required data and send it over GSM
     strcat(polled_msg, "GPS DATA RECEIVED ");
+    //strcat(polled_msg, msg);
     pstr = NULL;
-    //sel_GSM();                                 //Multiplex to GSM
+    sel_GSM();                                 //Multiplex to GSM
   }
 }

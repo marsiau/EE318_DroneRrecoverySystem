@@ -1,13 +1,15 @@
 /**************************************************
-* UART testing
+* Main
 *
 * Author: Marius Siauciulis
 * University of Strathclyde 2018
-*
+* Last edited: 27/04/18
 **************************************************/
+
 #include <msp430.h>
 #include <driverlib.h>
 #include "defUART.h"
+#include "defADC.h"
 #include "hal_LCD.h"
 
 //char temp_msg[POLLED_MSG_SIZE];
@@ -36,6 +38,7 @@ int main(void)
                                             // to activate previously configured port settings
   Init_LCD();         //for debugging
   init_UART(); 
+  initADC();
   //sel_GPS();
   sel_GSM();
   
@@ -53,7 +56,7 @@ int main(void)
   
   //Enable interrupts
   __enable_interrupt();
-  
+  ADCCTL0 |= ADCENC;                    // Enable ADC conversions
   while (1)
   {
     if(polled_msg[0] != '\0')

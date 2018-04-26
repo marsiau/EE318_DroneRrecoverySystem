@@ -3,6 +3,7 @@
 *
 * Author: Marius Siauciulis
 * University of Strathclyde 2018
+* Last edited: 27/04/18
 *
 * Fargo Maestro 100 Lite RS-232 settings:
 *    o 9600bps
@@ -13,6 +14,15 @@
 * References:
 * msp430fr413x_euscia0_uart_03.c
 **************************************************/
+/*
+Notes:
+uintX_t and boolean type variables are used as they:
+  o document the intent for type/range of values stored 
+  o are efficiant
+  o personal preference
+enum type for flags is created for convieniance
+*/
+
 #ifndef defUART_h
 #define defUART_h
 
@@ -20,19 +30,22 @@
 #include <stdint.h>                             //For uintX_t
 #include <stdbool.h>                            //For bool
 #include <string.h>                             //String manipulation
+#include <cstdio>                               //For snprintf
+#include <cstdlib>
 #include "hal_LCD.h"
+#include "defADC.h"
 
 //Define maximum message size for Rx and Tx
 #define MAX_MSG_SIZE 70                        //GPS messages are over 600chars
 #define POLLED_MSG_SIZE 50
 
-
 //Using FRAM to store persistant information
 __persistent extern char PHNR[12];//Does not support internationall codes
-__persistent extern float CELLTH;
+__persistent extern uint16_t CELLTH;
 
 //----- Structure declarations -----
 enum statusFlags{STOP, CONT, PAUSE};
+
 //----- Structure declarations -----
 struct UARTMsgStruct
 {
@@ -60,12 +73,3 @@ void send_over_UART(char data[], uint8_t lenght);//Send msg over UART
 void parse_msg();                //Parse received data
 void send_SMS(char data[]);
 #endif
-
-/*
-Notes:
-uintX_t and boolean type variables are used as they:
-  o document the intent for type/range of values stored 
-  o are efficiant
-  o personal preference
-enum type for flags is created for convieniance
-*/

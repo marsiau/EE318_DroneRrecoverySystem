@@ -259,9 +259,11 @@ void send_over_UART(char data[], uint8_t lenght)
 void parse_msg()                //Parse received data
 {
   char *pstr = NULL;
-  if(strstr(RxMsg.data, "ERROR") != NULL)
+  if(strstr(RxMsg.data, "ERROR\r\n") != NULL)
   {
-    send_over_UART("AT+CMGD=1,4\r\n",15);
+    //Sometimes it shows ERROR if there is too many SMS in the memory
+    //Crude but works for now
+    send_over_UART("AT+CMGD=1,4\r\n",14);
   }
   else
   {
@@ -312,7 +314,7 @@ void parse_msg()                //Parse received data
       pstr = NULL;
     }
     //--------------- GSM ---------------
-    if(strstr(RxMsg.data, ">") != NULL)
+    if(strstr(RxMsg.data, ">") != NULL)//Sending SMS
     { 
       //Send the message
       strcpy(temp_msg, sms_msg);
@@ -320,17 +322,30 @@ void parse_msg()                //Parse received data
       send_over_UART(temp_msg, strlen(temp_msg)+1);
       memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
     }
-    pstr = strstr(RxMsg.data, "CMGW:");
+    pstr = strstr(RxMsg.data, "CMGW:");//SMS stored and ready to send
     if(pstr != NULL)
     {
       strcpy(temp_msg, "AT+CMSS=");
-      strncat(temp_msg, (pstr+6),2);
       strcat(temp_msg, "\r\n");
-      strcat(polled_msg, temp_msg);
+      strcat(polled_msg, "SMS SENT");
       send_over_UART(temp_msg, strlen(temp_msg)+1);
       memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
       pstr = NULL;
     }
+    pstr = strstr(RxMsg.data, "CMTI:");//SMS received
+    if(pstr != NULL)
+    {
+      strcpy(temp_msg, "AT+CMGR="); 
+      strncat(temp_msg, (pstr+11),2);
+      //if((pstr+12) == "\r")
+        strcat(temp_msg, "\n");
+      //else
+        //strcat(temp_msg, "\r\n");
+      send_over_UART(temp_msg, strlen(temp_msg)+1);
+      memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
+      pstr = NULL;
+    }
+    
   }
   //--------------- GPS ---------------
   pstr = strstr(RxMsg.data, "$GPRMC");

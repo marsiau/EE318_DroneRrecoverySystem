@@ -1,4 +1,4 @@
-t /**************************************************
+/**************************************************
 * UART library with RTS/CTS flow support
 *
 * Author: Craig Cameron
@@ -59,6 +59,10 @@ __interrupt void ADC_ISR(void)
         strcat(temp_msg, "MV");
         strcat(polled_msg, temp_msg);
         memset(temp_msg, 0, MAX_MSG_SIZE);
+        if(ADCVT > CELLTH && ADCVT < CELLTH*4 )
+        {
+          send_SMS("VOLTAGE THRESHOLD REACHED");
+        }
         counter=0;
         Y3();
       }
@@ -137,6 +141,3 @@ void Y2()
       GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN4);  
       GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN5);  
 }
-//S0 - p1.3
-//S1 - p1.4
-//S2 - p1.5

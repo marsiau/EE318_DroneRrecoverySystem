@@ -22,7 +22,7 @@ struct UARTMsgStruct TxMsg, RxMsg;
 bool HFC_flag = false;
 //char PHNR[12] = {"07923255364"};                //My number as default 
 char PHNR[12] =   {"07543883279"};                //My number as default 
-uint16_t CELLTH = 3800;                             //Cell threshold level
+uint16_t CELLTH = 3000;                             //Cell threshold level
 char sms_msg[MAX_MSG_SIZE] = "";
 char temp_msg[MAX_MSG_SIZE] = "";
 char polled_msg[POLLED_MSG_SIZE] = "";
@@ -277,13 +277,11 @@ void parse_msg()                //Parse received data
     if(strstr(RxMsg.data, "bon") != NULL)
     {
       strcat(polled_msg, "BUZZER ON ");
-      //strcpy(polled_msg, "BUZZER ON");
       //Turn on the buzzer
     }
     if(strstr(RxMsg.data, "boff") != NULL)
     {
       strcat(polled_msg, "BUZZER OFF ");
-      //strcpy(polled_msg, "BUZZER OFF");
       //Turn off the buzzer
     }
     if(strstr(RxMsg.data, "rv") != NULL)

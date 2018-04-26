@@ -37,8 +37,8 @@ int main(void)
                                             // to activate previously configured port settings
   Init_LCD();         //for debugging
   init_UART(); 
-  //sel_GPS();
-  sel_GSM();
+  sel_GPS();
+  //sel_GSM();
   
   //Configure GPIO pins
     //Button

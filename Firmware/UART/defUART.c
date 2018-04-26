@@ -351,10 +351,32 @@ void parse_msg()                //Parse received data
   pstr = strstr(RxMsg.data, "$GPRMC");
   if(pstr != NULL)
   {
-    //Extract required data and send it over GSM
-    strcat(polled_msg, "GPS DATA RECEIVED ");
+    //Extract required data and display/send it over GSM
+    strcpy(temp_msg, "GPS "); 
+    char *ptoken = strtok(RxMsg.data, ",");//skip 1
+    ptoken = strtok(NULL, ",");//skip
+    ptoken = strtok(NULL, ",");//check "A" or "V"
+    if(ptoken == "A")
+    {
+      //Data is ok so extract it
+      for(int i = 2; (i <= 6) && (ptoken != NULL); i++)
+      {
+        strcat(temp_msg, ptoken);
+        strncat(temp_msg, " ", 1);
+        ptoken = strtok(NULL, ",");
+      }
+    }
+    else
+    {
+      //No lock
+      strcat(temp_msg, ptoken);
+      strncat(temp_msg, " ", 1);
+    }
+    strcat(polled_msg, temp_msg);
+    //send_sms(temp_msg);
+    memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
     pstr = NULL;
-    //sel_GSM();                                 //Multiplex to GSM
+    sel_GSM();                                 //Multiplex to GSM
   }
 }
 
@@ -365,7 +387,6 @@ void send_SMS(char data[])
   strcpy(temp_msg, "AT+CMGW=\"");
   strcat(temp_msg, PHNR);
   strcat(temp_msg, "\"\r\n");
-  //send_over_UART(temp_msg, 24);
   send_over_UART(temp_msg, strlen(temp_msg)+1);
   memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
 }

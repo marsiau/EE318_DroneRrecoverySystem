@@ -23,7 +23,7 @@
 #include "hal_LCD.h"
 
 //Define maximum message size for Rx and Tx
-#define MAX_MSG_SIZE 50                        //GPS messages are over 600chars
+#define MAX_MSG_SIZE 70                        //GPS messages are over 600chars
 #define POLLED_MSG_SIZE 50
 
 

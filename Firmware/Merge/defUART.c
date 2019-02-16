@@ -14,15 +14,15 @@
 * References:
 * msp430fr413x_euscia0_uart_03.c
 **************************************************/
-
 #include "defUART.h"
 
 //----- Variable definitions -----
 struct UARTMsgStruct TxMsg, RxMsg;
 bool HFC_flag = false;
 //char PHNR[12] = {"07923255364"};                //My number as default 
-char PHNR[12] =   {"07543883279"};                //My number as default 
-uint16_t CELLTH = 3000;                             //Cell threshold level
+//char PHNR[12] =   {"07543883279"};                //Temp number
+char PHNR[12] =   {"07484146949"};                //Craigs number as default
+uint16_t CELLTH = 2500;                             //Cell threshold level
 char sms_msg[MAX_MSG_SIZE] = "";
 char temp_msg[MAX_MSG_SIZE] = "";
 char polled_msg[POLLED_MSG_SIZE] = "";
@@ -303,7 +303,7 @@ void parse_msg()                //Parse received data
     if(pstr != NULL)
     {
       SYSCFG0 &= ~PFWP;                   //Program FRAM write enable
-      strncpy(PHNR, pstr+6, 13);          //Update the phone number
+      strncpy(PHNR, (pstr+6), 13);          //Update the phone number
       SYSCFG0 |= PFWP;                    //Program FRAM write protected
       strcat(polled_msg, "PHONE NUMBER UPDATED ");
       pstr = NULL;
@@ -311,7 +311,7 @@ void parse_msg()                //Parse received data
     pstr = strstr(RxMsg.data, "Threshold=");
     if(pstr != NULL)
     {
-      SYSCFG0 &= ~PFWP;                         //Program FRAM write enable
+        SYSCFG0 &= ~PFWP;                         //Program FRAM write enable
       CELLTH = atoi(pstr+10);                   //Update the cell threshold
       SYSCFG0 |= PFWP;                          //Program FRAM write protected
       strcat(polled_msg, "VOLTAGE THRESHOLD UPDATED ");
@@ -330,6 +330,7 @@ void parse_msg()                //Parse received data
     if(pstr != NULL)
     {
       strcpy(temp_msg, "AT+CMSS=");
+      strncat(temp_msg, (pstr+6), 2);
       strcat(temp_msg, "\r\n");
       strcat(polled_msg, "SMS SENT");
       send_over_UART(temp_msg, strlen(temp_msg)+1);
@@ -346,7 +347,6 @@ void parse_msg()                //Parse received data
       memset(temp_msg, 0, MAX_MSG_SIZE);    //Clean the memory
       pstr = NULL;
     }
-    
   }
   //--------------- GPS ---------------
   pstr = strstr(RxMsg.data, "$GPRMC");

@@ -1,17 +1,19 @@
 /**************************************************
-* UART testing
+* Main
 *
 * Author: Marius Siauciulis
 * University of Strathclyde 2018
-*
+* Last edited: 27/04/18
 **************************************************/
+
 #include <msp430.h>
 #include <driverlib.h>
 #include "defUART.h"
+#include "defADC.h"
 #include "hal_LCD.h"
 
-char temp_msg[POLLED_MSG_SIZE];
-char TestMsg[] = {"AT+WOPEN=2\r\n"};
+//char temp_msg[POLLED_MSG_SIZE];
+//char TestMsg[] = {"AT+WOPEN=2\r\n"};
 
 //----- Interupt rutine for GPIO -----
 #pragma vector = PORT1_VECTOR
@@ -23,7 +25,6 @@ __interrupt void P1_interrupt_handler(void)
     __delay_cycles(5000);                      //Simple debauncing
     if(!(P1IN & BIT2))
     {
-      //send_over_UART(TestMsg, sizeof(TestMsg));
       send_over_UART("AT+WOPEN=2\r\n", 13);
     }
     break;
@@ -37,8 +38,10 @@ int main(void)
                                             // to activate previously configured port settings
   Init_LCD();         //for debugging
   init_UART(); 
+  initADC();
   //sel_GPS();
   sel_GSM();
+  
   //Configure GPIO pins
     //Button
   P1DIR &= ~BIT2; //P1.2 as input
@@ -53,8 +56,7 @@ int main(void)
   
   //Enable interrupts
   __enable_interrupt();
-  
- 
+  ADCCTL0 |= ADCENC;                    // Enable ADC conversions
   while (1)
   {
     if(polled_msg[0] != '\0')
@@ -63,15 +65,18 @@ int main(void)
         displayScrollText() requires a lot of cycles to complete and polled_msg
         might be updated in the meantime
       */
-      strcpy(temp_msg, polled_msg);
+      //strcpy(temp_msg, polled_msg);
+      //memset(polled_msg, 0, sizeof(polled_msg));    //Clean the memory
+      //displayScrollText(temp_msg);        
+      
+      displayScrollText(polled_msg);                      
       memset(polled_msg, 0, sizeof(polled_msg));    //Clean the memory
-      displayScrollText(temp_msg);                       
       clearLCD();
     }
     else
     {
-      __bis_SR_register(LPM3_bits + GIE);     // Enter LPM3 w/interrupt 
-      __no_operation();                       // For debugger
+     // __bis_SR_register(LPM3_bits + GIE);     // Enter LPM3 w/interrupt 
+      //__no_operation();                       // For debugger
     }
   }
 }

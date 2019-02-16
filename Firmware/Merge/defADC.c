@@ -31,35 +31,35 @@ __interrupt void ADC_ISR(void)
       if (counter==0)
       {  
         Y3();
-        ADCmV[0] = (int)(ADCMEM0*4.719465);
+        ADCmV[0] = (int)(ADCMEM0*5.5);
         counter=counter+1;
         Y0();
       }
       else if (counter==1)
       {  
         Y0();
-        ADCmV[1] = (int)(ADCMEM0*4.719465);
+        ADCmV[1] = (int)(ADCMEM0*5.5);
         counter=counter+1;
         Y1();
       }
       else if (counter==2)
       { 
         Y1();
-        ADCmV[2] = (int)(ADCMEM0*4.719465);
+        ADCmV[2] = (int)(ADCMEM0*5.5);
         counter=counter+1;
         Y2();
       }
       else if (counter==3)
       {  
         Y2();
-        ADCmV[3] = (int)(ADCMEM0*4.719465);
+        ADCmV[3] = (int)(ADCMEM0*5.5);
         ADCVT= ADCmV[0] + ADCmV[1] + ADCmV[2] + ADCmV[3];
         strcat(temp_msg, "ADC ");
         snprintf(temp_msg, POLLED_MSG_SIZE, "%u", ADCVT);
         strcat(temp_msg, "MV");
-        strcat(polled_msg, temp_msg);
+        //strcat(polled_msg, temp_msg);
         memset(temp_msg, 0, MAX_MSG_SIZE);
-        if(ADCVT > CELLTH && ADCVT < CELLTH*4 )
+        if((ADCVT > CELLTH) && (ADCVT < (CELLTH*4)))
         {
           send_SMS("VOLTAGE THRESHOLD REACHED");
         }
@@ -113,7 +113,7 @@ void configureTimer()
   TA1CCR0 =  0x1000;                    // Reset every 0x1000 tics
   TA1CCR1 =  0x800;                     // Toggle OUT every 0x800 to turn the ADC on 8 times/s
   TA1CCTL1 = OUTMOD_7;                  // TA1CCR1 toggle
-  TA1CTL |= TASSEL_1 | MC_1;             // ACLK |up mode    
+  TA1CTL |= ID_2 | TASSEL_1 | MC_1;             // ACLK |up mode    
 }
 
 //MUX

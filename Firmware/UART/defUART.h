@@ -3,6 +3,7 @@
 *
 * Author: Marius Siauciulis
 * University of Strathclyde 2018
+* Last edited: 27/04/18
 *
 * Fargo Maestro 100 Lite RS-232 settings:
 *    o 9600bps
@@ -13,26 +14,37 @@
 * References:
 * msp430fr413x_euscia0_uart_03.c
 **************************************************/
+/*
+Notes:
+uintX_t and boolean type variables are used as they:
+  o document the intent for type/range of values stored 
+  o are efficiant
+  o personal preference
+enum type for flags is created for convieniance
+*/
+
 #ifndef defUART_h
 #define defUART_h
 
 #include <msp430.h>
 #include <stdint.h>                             //For uintX_t
 #include <stdbool.h>                            //For bool
-//#include <string.h>                             //String manipulation
+#include <string.h>                             //String manipulation
+#include <cstdio>                               //For snprintf
+#include <cstdlib>
 #include "hal_LCD.h"
-#include "poll_LCD.h"
 
 //Define maximum message size for Rx and Tx
-#define MAX_MSG_SIZE 255                        //GPS messages are over 600chars
-//#define POLLED_MSG_SIZE 150
+#define MAX_MSG_SIZE 70                        //GPS messages are over 600chars
+#define POLLED_MSG_SIZE 50
 
 //Using FRAM to store persistant information
-__persistent extern char PHNR[13];              //PHone NumbeR
-__persistent extern float CELLTH;               //CELL THreshold
+__persistent extern char PHNR[12];//Does not support internationall codes
+__persistent extern uint16_t CELLTH;
 
 //----- Structure declarations -----
 enum statusFlags{STOP, CONT, PAUSE};
+
 //----- Structure declarations -----
 struct UARTMsgStruct
 {
@@ -45,7 +57,9 @@ struct UARTMsgStruct
 //----- Variable declarations -----
 //Variable signaling whether HFC is enabled/disabled (RTS/CTS lines)
 extern bool HFC_flag;                           //Hardware Flow Controll Flag
-//extern char polled_msg[POLLED_MSG_SIZE];
+extern char sms_msg[MAX_MSG_SIZE];
+extern char temp_msg[MAX_MSG_SIZE];
+extern char polled_msg[POLLED_MSG_SIZE];
 
 //----- Function declarations -----
 void init_UART_GPIO();                          //Initialize UART GPIO
@@ -54,15 +68,7 @@ void enable_HFC();                              //Enable Hardware Flow Controll
 void disable_HFC();                             //Disable Hardware Flow Controll
 void sel_GPS();                                 //Multiplex to GPS
 void sel_GSM();                                 //Multiplex to GSM
-bool send_over_UART(char data[], uint8_t lenght);//Send msg over UART
-void parse_msg();                               //Parse received data
+void send_over_UART(char data[], uint8_t lenght);//Send msg over UART
+void parse_msg();                //Parse received data
+void send_SMS(char data[]);
 #endif
-
-/*
-Notes:
-uintX_t and boolean type variables are used as they:
-  o document the intent for type/range of values stored 
-  o are efficiant
-  o personal preference
-enum type for flags is created for convieniance
-*/
